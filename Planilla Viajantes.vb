@@ -1,17 +1,24 @@
 Option Explicit
 Sub Generar_Rotulo()
 ' ============================================================
-' GENERA UN ROTULO Y PLANILLA PARA IMPRIMIR VENTA DE UN 
+' GENERA UN ROTULO Y PLANILLA PARA IMPRIMIR VENTA DE UN
 ' VIAJANTE O SUCURSASL. CONTROLA QUE LAS SUBCARPETAS SE HAYAN
 ' CREADO. SI NO, LAS CREA. TAMBIÉN GUARDA LOS ARCHIVOS CON
 ' NOMBRE DE LOS CLIENTES Y FECHA, CADA RESPECTIVA SUBCARPETA.
 ' ============================================================
-
-	' Protegiendo el archivo de cambios innecesarios
+	' Pretegiendo el libraco
 	ThisWorkbook.Protect
+	
+	' Ocultando una hoja innecesaria
 	If Worksheets("Lince").Visible = True Then
 		Worksheets("Lince").Visible = False
 	End If
+	
+	' Protegiendo el resto de las hojas de cambios innecesarios
+	Dim cuenta As Integer
+	For cuenta = 1 To Worksheets.Count
+		Worksheets(cuenta).Protect
+	Next
 	
 	' Definiendo variables a usar
 	Dim ruta As String
@@ -45,4 +52,49 @@ Sub Generar_Rotulo()
 		rutaViajante & "\" & cliente & ". " & fecha & ".pdf", Quality:=xlQualityStandard, _
 		IncludeDocProperties:=True, IgnorePrintAreas:=False, OpenAfterPublish:= _
 		True
+End Sub
+
+Sub Workbook_Activate()
+	ThisWorkbook.Protect
+		
+	' Ocultando una hoja innecesaria
+	If Worksheets("Lince").Visible = True Then
+		Worksheets("Lince").Visible = False
+	End If
+	
+	' Protegiendo el resto de las hojas de cambios innecesarios
+	Dim cuenta As Integer
+	For cuenta = 1 To Worksheets.Count
+		Worksheets(cuenta).Protect
+	Next
+End Sub
+
+Sub Workbook_BeforeSave(ByVal SaveAsUI As Boolean, Cancel As Boolean)
+	ThisWorkbook.Protect
+	
+	' Ocultando una hoja innecesaria
+	If Worksheets("Lince").Visible = True Then
+		Worksheets("Lince").Visible = False
+	End If
+	
+	' Protegiendo el resto de las hojas de cambios innecesarios
+	Dim cuenta As Integer
+	For cuenta = 1 To Worksheets.Count
+		Worksheets(cuenta).Protect
+	Next
+End Sub
+
+Sub Workbook_Open()
+	ThisWorkbook.Protect
+	
+	' Ocultando una hoja innecesaria
+	If Worksheets("Lince").Visible = True Then
+		Worksheets("Lince").Visible = False
+	End If
+	
+	' Protegiendo el resto de las hojas de cambios innecesarios
+	Dim cuenta As Integer
+	For cuenta = 1 To Worksheets.Count
+		Worksheets(cuenta).Protect
+	Next
 End Sub
