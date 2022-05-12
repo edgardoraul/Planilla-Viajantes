@@ -51,7 +51,13 @@ Sub Generar_Rotulo()
 	ActiveSheet.ExportAsFixedFormat Type:=xlTypePDF, Filename:= _
 		rutaViajante & "\" & cliente & ". " & fecha & ".pdf", Quality:=xlQualityStandard, _
 		IncludeDocProperties:=True, IgnorePrintAreas:=False, OpenAfterPublish:= _
-		True
+		False
+	
+	' Mostrar dónde se guardó el archivo
+	MsgBox ("Se guardó una copia PDF en " & rutaViajante & "\" & cliente & ". " & fecha & ".pdf")
+    
+	' Imprimiendo el archivo
+	ActiveSheet.Application.Dialogs(xlDialogPrint).Show
 End Sub
 
 Sub Workbook_Activate()
