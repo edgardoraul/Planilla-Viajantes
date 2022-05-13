@@ -27,13 +27,16 @@ Sub Generar_Rotulo()
     Dim cliente As String
     Dim fecha As String
     Dim cp As String
-    cp = ActiveSheet.Range("X5").Value
+    Dim codigoNis As String
     
     
     ' Asigando los valores de acuerdo a la planilla donde esté parado
     ruta = ThisWorkbook.Path & "\Ventas de Viajantes"
     viajante = ActiveSheet.Range("X1").Value
     fecha = Day(Date) & "-" & Month(Date) & "-" & Year(Date)
+    cliente = ActiveSheet.Range("X2").Value
+    cp = ActiveSheet.Range("X5").Value
+    
     
     ' Controlando y validando el nombre del cliente
     cliente = ActiveSheet.Range("X2").Value
@@ -50,36 +53,50 @@ Sub Generar_Rotulo()
     End If
     
     
-    ' Controlando si están completos los datos
-    If ActiveSheet.Range("X2").Value = "" Then
-        
-        ' Pedir datos
+    ' Controlando al vendedor o viajante
+    If viajante = "" Then
+        MsgBox ("¿Y tu nombre como vendedor, viajante o sucursal?")
+        ActiveSheet.Range("X1").Select
+    
+    ' Controlando apellido, nombre razón social del cliente
+    ElseIf ActiveSheet.Range("X2").Value = "" Then
         MsgBox ("¿Y el Apellido/Nombre o razón social del cliente?")
         ActiveSheet.Range("X2").Select
+    
+    ' Controlando la dirección
+    ElseIf Sheets("A Domicilio").Range("X3").Value = "" Then
+        MsgBox ("¿Y la dirección de destino? Calle, Nº, piso, dpto, etc...")
+        ActiveSheet.Range("X3").Select
         
     ' Controlando el código postal
     ElseIf ActiveSheet.Range("X5").Value = "" Then
-        ' Pedir datos
-        MsgBox ("¿ Y el código postal?")
+        MsgBox ("¿Y el código postal?")
         ActiveSheet.Range("X5").Select
+        
+    ' Controlando el código postal
+    ElseIf ActiveSheet.Name = "A Sucursal" And Sheets("A Sucursal").Range("X5").Value = "" Then
+        ' Validando si lo encuentra
+        If codigoNis = "" Then
+            ' Todo salió mal
+            Sheets("A Sucursal").Range("X5").Select
+            codigoNis = Sheets("Sucursales").Range("$F$4:$F$5000").Find(What:=cp, LookIn:=xlValues, LookAt:=xlPart).Offset(0, -4)
+            MsgBox ("El código postal " & cp & " no existe. Intentá con otro. ")
+        End If
     
     ' Controlando el DNI/CUIT
     ElseIf ActiveSheet.Range("X6").Value = "" Then
-        ' Pedir datos
         MsgBox ("¿Y el DNI o CUIL/CUIT del cliente?")
         ActiveSheet.Range("X6").Select
     
     ' Controlando el teléfono de contacto
     ElseIf ActiveSheet.Range("X7").Value = "" Then
-        ' Pedir datos
         MsgBox ("¿Y el teléfono o celular del cliente?")
         ActiveSheet.Range("X7").Select
     
-    ' Controlando al vendedor o viajante
-    ElseIf ActiveSheet.Range("X1").Value = "" Then
-        ' Pedir datos
-        MsgBox ("¿Y tu nombre como vendedor, viajante o sucursal?")
-        ActiveSheet.Range("X1").Select
+    ' Controlando la ciudad o pueblo
+    ElseIf Sheets("A Domicilio").Range("X8").Value = "" Then
+        MsgBox ("¿Y la ciudad o pueblo?")
+        ActiveSheet.Range("X8").Select
     
     Else
     
@@ -97,49 +114,3 @@ Sub Generar_Rotulo()
     End If
     
 End Sub
-
-Sub Workbook_Activate()
-    ThisWorkbook.Protect
-        
-    ' Ocultando una hoja innecesaria
-    If Worksheets("Lince").Visible = True Then
-        Worksheets("Lince").Visible = False
-    End If
-    
-    ' Protegiendo el resto de las hojas de cambios innecesarios
-    Dim cuenta As Integer
-    For cuenta = 1 To Worksheets.Count
-        Worksheets(cuenta).Protect
-    Next
-End Sub
-
-Sub Workbook_BeforeSave(ByVal SaveAsUI As Boolean, Cancel As Boolean)
-    ThisWorkbook.Protect
-    
-    ' Ocultando una hoja innecesaria
-    If Worksheets("Lince").Visible = True Then
-        Worksheets("Lince").Visible = False
-    End If
-    
-    ' Protegiendo el resto de las hojas de cambios innecesarios
-    Dim cuenta As Integer
-    For cuenta = 1 To Worksheets.Count
-        Worksheets(cuenta).Protect
-    Next
-End Sub
-
-Sub Workbook_Open()
-    ThisWorkbook.Protect
-    
-    ' Ocultando una hoja innecesaria
-    If Worksheets("Lince").Visible = True Then
-        Worksheets("Lince").Visible = False
-    End If
-    
-    ' Protegiendo el resto de las hojas de cambios innecesarios
-    Dim cuenta As Integer
-    For cuenta = 1 To Worksheets.Count
-        Worksheets(cuenta).Protect
-    Next
-End Sub
-
