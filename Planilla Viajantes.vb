@@ -1,53 +1,108 @@
 Option Explicit
-Function correo(numVenta, nombre, ultimaFila, i, packar, planilla)
-	' GENERA UN LISTADO DE VENTAS Y N° GUIAS PARA EL CORREO
-	' Acumulador negativo para evitar filas en blanco
-	Dim vacia As Byte
-	vacia = 0
-	' Acumulador para el caso de las segunda o X tanda
-	Dim tanda As Byte
+' Definiendo unas variables globales a usar
+Dim cp As String
+Dim codigoNis As String
+Dim dni As String
+Dim ruta As String
+Dim rutaViajante As String
+Dim viajante As String
+Dim cliente As String
+Dim fecha As String
+Dim domicilio As String
+Sub Generar_Rotulo()
+' ============================================================
+' GENERA UN ROTULO Y PLANILLA PARA IMPRIMIR LA VENTA DE UN
+' VIAJANTE O DE UNA SUCURSAL.
+' ============================================================
 
-	' Borrando el contenido viejo
-	packar.Sheets(1).Range("A9:C39").ClearContents
+' Comienza dando un formato adecuado de visualización e impresión.
+'Call darFormato
 
-	' Completando la información
-	For i = 2 To ultimaFila
-		' Asignando el valor a cada N° vta.
-		numVenta = planilla.Sheets("ventas").Cells(i, 1).Value
-		nombre = planilla.Sheets("ventas").Cells(i, 2).Value
-		Debug.Print numVenta & "-" & nombre
+' Oculta hojas innecesarias y las protege
+'Call ocultarInnecesario
 
-		' Controlando espacios vacíos
-		If numVenta = "" Or planilla.Sheets("ventas").Cells(i, 9).Value = "Retira en Local" Then
-			vacia = vacia + 1
-		End If
+' Asigna valores de acuerdo a datos de la planilla actual
+ruta = ThisWorkbook.Path & "\Ventas de Viajantes"
+viajante = UCase(ActiveSheet.Range("X1").Value)
+'fecha = Day(Date) & "-" & Month(Date) & "-" & Year(Date)
 
-		' Recorremos la planilla del Correo
-		' Controlamos que el número de venta esté completo
-		' y además que NO SEA un retiro en Local
-		If numVenta <> "" And planilla.Sheets("ventas").Cells(i, 9).Value <> "Retira en Local" Then
-			packar.Sheets(1).Cells(i + 7 - vacia, 1).Value = numVenta
-			packar.Sheets(1).Cells(i + 7 - vacia, 2).Value = nombre
-		End If
-	Next i
+' Nuevo formato para dar orden ascendente a los archivos
+fecha = Format(Date, "yyyy-mm-dd")
 
+dni = ActiveSheet.Range("X6").Value
+cliente = UCase(ActiveSheet.Range("X2").Value)
+cp = ActiveSheet.Range("X5").Value
+domicilio = Sheets("A Domicilio").Range("X3").Value
 
-End Function
+' Controla si la carpeta existe, de lo contrario, la crea en local
+Call crearArchivo(ruta, viajante, fecha, cliente, cp)
 
-Function generarRoutuloRetiro(nombre, telefono, dni, fecha, numVenta, ruta)
-	' GENERA PESTAÑAS CON ROTULOS PARA RETIRO EN LOCAL
-	' Enmarcando
-	ActiveSheet.Range("A1:H21").Select
-	With Selection
-		.Borders(xlEdgeLeft).LineStyle = xlContinuous
-		.Borders(xlEdgeRight).LineStyle = xlContinuous
-		.Borders(xlEdgeTop).LineStyle = xlContinuous
-		.Borders(xlEdgeBottom).LineStyle = xlContinuous
-	End With
+' Controla si se determinó el vendedor, viajente o sucursal
+If viajante = "" Then
+	MsgBox ("¿Y tu nombre como vendedor, viajante o sucursal?")
+	ActiveSheet.Range("X1").Activate
 
-	' Formato de impresión
+' Controla apellido, nombre o razón social del cliente
+ElseIf ActiveSheet.Range("X2").Value = "" Then
+	MsgBox ("¿Y el Apellido/Nombre o razón social del cliente?")
+	ActiveSheet.Range("X2").Activate
+
+' Controla datos de dirección para el caso de "ENVIO A DOMICILIO".
+ElseIf ActiveSheet.Name = "A Domicilio" And ActiveSheet.Range("X3").Value = "" Then
+	MsgBox ("¿Y la dirección de destino? Calle, Nº, piso, dpto, etc...")
+	Sheets("A Domicilio").Range("X3").Activate
+
+' Controla que el código postal exista y sea correcto.
+ElseIf ActiveSheet.Range("X5").Value = "" Then
+	MsgBox ("¿Y el código postal?")
+	ActiveSheet.Range("X5").Activate
+
+' Controla el DNI/CUIT del cliente
+ElseIf ActiveSheet.Range("X6").Value = "" Then
+	MsgBox ("¿Y el DNI o CUIL/CUIT del cliente?")
+	ActiveSheet.Range("X6").Activate
+
+' Controla el teléfono de contacto del cliente
+ElseIf ActiveSheet.Range("X7").Value = "" Then
+	MsgBox ("¿Y el teléfono o celular del cliente?")
+	ActiveSheet.Range("X7").Activate
+
+' Controla la ciudad o pueblo de destino
+ElseIf ActiveSheet.Range("X8").Value = "" Then
+	MsgBox ("¿Y la ciudad o pueblo?")
+	ActiveSheet.Range("X8").Activate
+
+' Controla la Provincia de destino
+ElseIf ActiveSheet.Range("X9").Value = "" Then
+	MsgBox ("¿Y la provincia?")
+	ActiveSheet.Range("X9").Activate
+
+' Controla que sea NIS para el caso de retiro en sucursal
+ElseIf ActiveSheet.Name = "A Sucursal" Or ActiveSheet.Name = "Pago en Destino" Then
+	domicilio = "Sucursal Correo Argentino NIS " & Application.VLookup(ActiveSheet.Range("X5"), Sheets("Sucursales").Range("A3:B4000"), 2, False)
+
+	' Muestra dónde se guarda el archivo y lo abre
+	Call guardar(rutaViajante, cliente, fecha)
+
+	' Genera, si corresponde; la factura proforma
+
+	Call proforma(cliente, dni, domicilio, UCase(ActiveSheet.Range("X9").Value), cp, UCase(ActiveSheet.Range("X8").Value), UCase(ActiveSheet.Range("X7").Value))
+
+Else
+	' Muestra dónde se guarda el archivo y lo abre
+	Call guardar(rutaViajante, cliente, fecha)
+
+	' Genera, si corresponde; la factura proforma
+	Call proforma(cliente, dni, domicilio, UCase(ActiveSheet.Range("X9").Value), cp, UCase(ActiveSheet.Range("X8").Value), UCase(ActiveSheet.Range("X7").Value))
+End If
+
+End Sub
+
+' FORMATEA LA PLANILLA PARA VISUALIZACION Y MODO IMPRESION
+Function darFormato()
+	' Formato a cada planilla en cuestión
 	With ActiveSheet.PageSetup
-		.Orientation = xlPortrait
+		.Orientation = xlLandscape
 		.PaperSize = xlPaperA4
 		.LeftMargin = Application.CentimetersToPoints(0.64)
 		.RightMargin = Application.CentimetersToPoints(0.64)
@@ -57,477 +112,198 @@ Function generarRoutuloRetiro(nombre, telefono, dni, fecha, numVenta, ruta)
 		.FooterMargin = Application.CentimetersToPoints(0.76)
 		.CenterHorizontally = True
 		.CenterVertically = False
-		.PrintArea = ActiveSheet.Range("A1:H21")
+		.PrintArea = ActiveSheet.Range("A1:AA36")
 		.Zoom = False
 		.FitToPagesTall = 1
 		.FitToPagesWide = 1
+
+		'.CenterHeader = "&B&20&F"
 	End With
 
-
-	' Dando un alto a la fila
-	ActiveSheet.Range("A2:A2").RowHeight = 30
-
-	 ' Insertando la imagen
-	ActiveSheet.Pictures.Insert(ruta & "..\logo.png").Select
-
-	' Centrando el logo
-	With Selection
-		.Top = 4
-		.Left = 155
-	End With
-
-
-	' Leyenda de retiro
-	Range("A4:H6").Select
-	With Selection
-		.Merge
-		.Font.Size = 30
-		.Font.Bold = True
-		.HorizontalAlignment = xlCenter
-	End With
-	Range("A4").Value = "RETIRA EN ENTREPISO"
-
-	' Nombre del cliente, en mayúsculas
-	Range("A9:H10").Select
-	With Selection
-		.Merge
-		.Font.Size = 25
-		.Font.Bold = True
-		.HorizontalAlignment = xlCenter
-		.Interior.color = RGB(220, 220, 220)
-	End With
-	Range("A9").Value = UCase(nombre)
-
-	' dni/cuit del cliente
-	Range("a12").Value = "DNI/CUIT:"
-	Range("a12").HorizontalAlignment = xlRight
-	Range("a12:b12").Font.Bold = True
-	Range("a12:b12").Font.Size = 13
-	Range("b12").Value = "'" & dni
-
-	' Teléfono del cliente
-	Range("a14:d14").Select
-	With Selection
-		.Font.Bold = True
-	End With
-	Range("a14").Value = "TELEFONO:"
-	Range("a14").HorizontalAlignment = xlRight
-	Range("b14").HorizontalAlignment = xlLeft
-	Range("b14").Value = telefono
-
-	' FIRMA
-	Range("A20").Select
-	With Selection
-		.Value = "FIRMA:"
-		.HorizontalAlignment = xlRight
-		.Font.Bold = True
-	End With
-	Range("b20:d20").Borders(xlEdgeBottom).LineStyle = xlContinuous
-
-	' FECHA
-	Range("f20").Select
-	With Selection
-		.Value = "FECHA RETIRO:"
-		.HorizontalAlignment = xlRight
-		.Font.Bold = True
-	End With
-	Range("g20:h20").Borders(xlEdgeBottom).LineStyle = xlContinuous
-
-	' FECHA ELABORACIÓN
-	Range("f12").Value = "FECHA DE ELABORACIÓN:"
-	Range("f12").HorizontalAlignment = xlRight
-	Range("f12:h12").Font.Bold = True
-	Range("g12").Value = fecha
-	Range("g12").HorizontalAlignment = xlLeft
-
-	' NUMERO DE VENTA
-	Range("f14").Select
-	With Selection
-		.Value = "N° DE VENTA:"
-		.Font.Bold = True
-		.HorizontalAlignment = xlRight
-	End With
-
-	Range("g14").Select
-	With Selection
-		.Value = numVenta
-		.HorizontalAlignment = xlLeft
-		.Font.Bold = True
-		.Font.Size = 15
+	' FACTURA PROFORMA ==========================
+	' Formato de impresión
+	With Sheets("Proforma").PageSetup
+		.Orientation = xlPortrait
+		.TopMargin = Application.CentimetersToPoints(1.9)
+		.RightMargin = Application.CentimetersToPoints(0.6)
+		.BottomMargin = Application.CentimetersToPoints(1.9)
+		.LeftMargin = Application.CentimetersToPoints(0.6)
+		.HeaderMargin = Application.CentimetersToPoints(0.8)
+		.FooterMargin = Application.CentimetersToPoints(0.8)
+		.CenterHorizontally = True
+		.PaperSize = xlPaperA4
 	End With
 
 End Function
 
-Function formatPrint(ultimaFila, i)
-' Dando formato apaisado, expandido a A4 y con titulares. Una sóla página.
+' OCULTA PESTAÑAS INNECESARIAS Y PROTEJE LAS HOJAS Y EL LIBRO
+Function ocultarInnecesario()
+	If Worksheets("Lince").Visible = True Then
+		Worksheets("Lince").Visible = False
+	End If
+	If Worksheets("Datos").Visible = True Then
+		Worksheets("Datos").Visible = False
+	End If
 
-' Delimitando el tamaño de hojas y márgenes
-Dim filasTotales As Integer
-filasTotales = ultimaFila + 1
+	' Protege el resto de las hojas de cambios innecesarios
+	Dim cuenta As Integer
+	For cuenta = 1 To Worksheets.Count
+		Worksheets(cuenta).Protect
+	Next
 
-' Formatea la última columna que NO saldrá impresa, sólo para acomodar, nada más
-Range("D:K").Columns.AutoFit
-
-' Centrando el contenido
-Range("E:E").HorizontalAlignment = xlCenter
-Cells(ultimaFila + 1, 5).HorizontalAlignment = xlRight
-
-' Acomoda el texto de las celdas con datos
-Range("B:B").ColumnWidth = 40
-Range("C:C").ColumnWidth = 50
-Range("A:A").ColumnWidth = 7
-Range("E:E").ColumnWidth = 12
-Range(Cells(2, 1), Cells(ultimaFila, 11)).WrapText = True
-
-' Ajusta automáticamente la altura de las filas
-Range(Cells(2, 1), Cells(ultimaFila, 11)).Rows.AutoFit
-
-' Formato de impresión
-With ActiveSheet.PageSetup
-	.Orientation = xlLandscape
-	.PaperSize = xlPaperA4
-	.LeftMargin = Application.CentimetersToPoints(0.64)
-	.RightMargin = Application.CentimetersToPoints(0.64)
-	.TopMargin = Application.CentimetersToPoints(2.5)
-	.BottomMargin = Application.CentimetersToPoints(1.91)
-	.HeaderMargin = Application.CentimetersToPoints(0.76)
-	.FooterMargin = Application.CentimetersToPoints(0.76)
-	.CenterHorizontally = True
-	.CenterVertically = False
-	.PrintArea = ActiveSheet.Range("A1:I" & filasTotales).Address
-	.Zoom = False
-	.FitToPagesTall = 1
-	.FitToPagesWide = 1
-	.CenterHeader = "&B&20&F"
-End With
-
+	' Pretege el workbook.
+	ActiveWorkbook.Protect Password:="Rerda", Structure:=True, Windows:=True
 End Function
 
-Function formato(ultimaFila, i)
-' DA FORMATO A LA TABLA DE EXCEL PARA QUE SE VEA BONITA
+' CHEQUEA QUE EXISTA LA CARPETA DONDE SE GUARDA, SI NO, LA CREA.
+Function crearArchivo(ruta, viajante, fecha, cliente, cp)
+	If Dir(ruta, vbDirectory) = "" Then
+		MkDir (ruta)
+	End If
 
-Range("A1").CurrentRegion.Select
-With Selection
-	.Borders(xlEdgeLeft).LineStyle = xlContinuous
-	.Borders(xlEdgeRight).LineStyle = xlContinuous
-	.VerticalAlignment = xlTop
-End With
+	' Controla si existe la carpeta del vendedor/viajante/sucursal
+	rutaViajante = ruta & "\" & viajante
+	If Dir(rutaViajante, vbDirectory) = "" Then
+		MkDir (rutaViajante)
+	End If
+End Function
 
-' Formateando los encabezados
-Rows("1").RowHeight = 27
-Range("A1").Select
-Range(Selection, Selection.End(xlToRight)).Select
-	With Selection
-		.Font.Bold = True
-		.HorizontalAlignment = xlCenter
-		.VerticalAlignment = xlCenter
-		.Interior.color = RGB(250, 250, 250)
-		.WrapText = True
+' GUARDA EL ARCHIVO CON NOMBRE DE CLIENTE Y LA FECHA DE CREACION.
+' TAMBIEN MUESTRA DONDE GUARDA Y LO ABRE PARA IMPRIMIR.
+Function guardar(rutaViajante, cliente, fecha)
+
+	' Muestra en qué carpeta se guarda
+	MsgBox ("Se guardó una copia PDF en " & rutaViajante & "\" & fecha & ". " & cliente & ".pdf")
+
+	' Guarda el archivo como pdf.
+	'ActiveSheet.ExportAsFixedFormat Type:=xlTypePDF, Filename:= _
+	'rutaViajante & "\" & cliente & ". " & fecha & ".pdf", Quality:=xlQualityStandard, _
+	'IncludeDocProperties:=True, IgnorePrintAreas:=False, OpenAfterPublish:= _
+	'True
+
+	' Cambio de nomenclatura en el nombrado ascendente de los archivos.
+	ActiveSheet.ExportAsFixedFormat Type:=xlTypePDF, Filename:= _
+		rutaViajante & "\" & fecha & ". " & cliente & ".pdf", Quality:=xlQualityStandard, _
+		IncludeDocProperties:=True, IgnorePrintAreas:=False, OpenAfterPublish:= _
+		True
+
+	' Imprime el archivo.
+	' Se lo comentó por ser una función innecesaria.
+	'ActiveSheet.Application.Dialogs(xlDialogPrint).Show
+
+	' Muestra el archivo en carpeta para enviar por mail o imprimir.
+	Shell "explorer " & rutaViajante, vbNormalFocus
+End Function
+
+' CHEQUEA SI CORRESPONDE O NO LA F. PROFORMA
+Function proforma(apellidoNombre, dni, direccion, provincia, codigoPostal, ciudad, telefono)
+	' Variables a utilizar
+	Dim acumulador As Byte
+	Dim cantidad As Byte
+	Dim precio As Double
+	Dim sku As String
+	Dim color As String
+	Dim talle As String
+
+	' Borra información previa
+	With Sheets("Proforma")
+		.Range("A22:D46").ClearContents
+		.Range("H22:H46").ClearContents
+		.Range("I7:I15").ClearContents
+		.Range("I18:I19").ClearContents
 	End With
 
-' Agregando bordes VERTICALES a toda la tabla
-Range("A2").CurrentRegion.Select
-Selection.Borders(xlDiagonalDown).LineStyle = xlNone
-Selection.Borders(xlDiagonalUp).LineStyle = xlNone
-	With Selection.Borders(xlInsideVertical)
-		.LineStyle = xlContinuous
-		.ColorIndex = 0
-		.TintAndShade = 0
-		.Weight = xlThin
-	End With
 
-' Agregando bordes HORIZONTALES en titular
-Range("A1:M1").Select
-Selection.Borders.LineStyle = xlContinuous
-
-' Se cuentan cuantas celdas ocupadas hasta el final
-Range(Cells(ultimaFila, 1), Cells(ultimaFila, 13)).Select
-	With Selection
-		.Borders(xlEdgeBottom).LineStyle = xlContinuous
-	End With
-
-' Colocando totales de productos y dando formato
-Cells(ultimaFila + 1, 5).Value = "TOTALES:"
-Cells(ultimaFila + 1, 6).Select
-Cells(ultimaFila + 1, 6).Value = "=SUM(F2:F" & ultimaFila & ")"
-Range(Cells(ultimaFila + 1, 5), Cells(ultimaFila + 1, 6)).Select
-	With Selection
-		.Font.Bold = True
-		.Font.Size = 15
-		.HorizontalAlignment = xlRight
-		.VerticalAlignment = xlBottom
-	End With
-Cells(ultimaFila + 1, 6).Borders.LineStyle = xlContinuous
-
-' Colocando el total de rótulos a imprimir
-Cells(ultimaFila + 1, 2).Value = "ROTULOS:"
-Cells(ultimaFila + 1, 3).Value = "=COUNTA(A2:A" & ultimaFila & ")"
-Range(Cells(ultimaFila + 1, 2), Cells(ultimaFila + 1, 3)).Select
-With Selection
-	.Font.Bold = True
-	.Font.Size = 15
-	.VerticalAlignment = xlBottom
-	.HorizontalAlignment = xlRight
-End With
-Cells(ultimaFila + 1, 3).HorizontalAlignment = xlLeft
-
-' Colocando un borde superior
-For i = 3 To ultimaFila
-	Range(Cells(i, 1), Cells(i, 13)).Select
-	If Cells(i, 1).Value <> "" Then
-		With Selection
-			.Borders(xlEdgeTop).LineStyle = xlContinuous
+	If provincia = "TIERRA DEL FUEGO" Or provincia = "Tierra del Fuego" Then
+		' Hace proforma
+		With Sheets("Proforma")
+			.Cells(7, 9).Value = UCase(apellidoNombre)
+			.Cells(9, 9).Value = dni
+			.Cells(10, 9).Value = direccion
+			.Cells(12, 9).Value = UCase(ciudad)
+			.Cells(13, 9).Value = codigoPostal
+			.Cells(14, 9).Value = UCase(provincia)
+			.Cells(18, 9).Value = "'" & telefono
 		End With
-	End If
-Next i
+		acumulador = 0
 
-' Autofit para la última columna
-Range("J:M").EntireColumn.AutoFit
+		' Bucle que recorre la venta
+		ActiveSheet.Activate
+		Range("W12").Activate
+		Do While ActiveCell.Value <> ""
+
+		' Toma datos de la "Planilla"
+		With ActiveSheet
+			sku = ActiveCell.Value
+			cantidad = ActiveCell.Offset(0, 4).Value
+			color = ActiveCell.Offset(0, 2).Value
+			talle = ActiveCell.Offset(0, 3).Value
+			' El precio se lo coloca manualmente
+			' precio = ActiveCell.Offset(0, 5).Value
+		End With
+		Debug.Print sku, cantidad, color, talle
+
+			' Vuelca info en la Proforma
+			With Sheets("Proforma")
+				' Copia el SKU
+				.Cells(22 + acumulador, 2).Value = sku
+
+				' Copia el talle
+				.Cells(22 + acumulador, 4).Value = talle
+
+				' Copia el color
+				.Cells(22 + acumulador, 3).Value = color
+
+				' Copia la cantidad
+				.Cells(22 + acumulador, 1).Value = cantidad
+
+				' Copia el precio unitario
+				' El precio se lo coloca manualmente
+				'.Cells(21 + acumulador, 8).Value = precio
+			End With
+
+			' Incrementa el contador
+			acumulador = acumulador + 1
+
+			' Salta a la siguiente celda de abajo
+			ActiveCell.Offset(1, 0).Activate
+
+			' Sale cuando no hay más SKU
+			If ActiveCell.Value = "" Then
+				Exit Do
+			End If
+		Loop
+
+		' Indica que se complete información de precios
+		Sheets("Proforma").Activate
+		MsgBox ("Ahora completá los precios unitarios de los productos.")
+		Range("H22").Activate
+	End If
 End Function
 
-Sub GuardarArchivo(fecha, ruta)
-' VALIDANDO NOMBRE DE ARCHIVO A GENERAR Y GUARDAR
 
-' Variables a utilizar
-Dim nombre As String
-Dim cuenta As String
+Sub imprimeProforma()
+	' GUARDA EN PDF E IMPRIME LA FACTURA PROFORMA
+	Dim permitido As Boolean
+	Range("A22").Activate
 
-' Asignando algunos valores
-ruta = ruta & "WEB\"
+	' Recorre los precios unitarios para que estén completos.
+	Do While ActiveCell.Value <> ""
+		If ActiveCell.Offset(0, 7).Value = "" Then
+			MsgBox "Te faltó un precio unitario"
+			ActiveCell.Offset(0, 7).Activate
+			Exit Sub
+		End If
+		ActiveCell.Offset(1, 0).Activate
+	Loop
 
-
-'Controlando si la compu EDGARD está prendida y conectada a red.
-If Dir(ruta, vbDirectory) = "" Then
-	' MkDir (ruta)
-	MsgBox ("No hay acceso la compu EDGARD. Debes prender esa compu y que se conecte a la red.")
-	Exit Sub
-End If
-
-' Definiendo unas variables
-Dim archivos As String
-Dim u As Integer
-Dim denominacion As String
-
-' Preparación de variables
-u = 1
-archivos = Dir(ruta)
-
-' Recorrido de la carpeta
-ActiveWorkbook.Sheets.Add(After:=ActiveWorkbook _
-	.ActiveSheet).Name = "Listado"
-Sheets("Listado").Visible = False
-Sheets(1).Name = "ventas"
-Sheets("ventas").Select
-
-Do While Len(archivos) > 0
-	Sheets("Listado").Cells(u, 1).Value = archivos
-	archivos = Dir()
-	u = u + 1
-Loop
-nombre = ruta & Sheets("Listado").Cells(u - 1, 1).Value
-
-' Controlando que no se esté duplicando el mismo archivo con otro nombre
-If ActiveWorkbook.Name = Sheets("Listado").Cells(u - 1, 1).Value Then
-	MsgBox ("Ya creaste este archivo antes. Generá uno nuevo.")
-	ActiveWorkbook.Close SaveChanges:=False
-	Exit Sub
-End If
-
-
-' Guardando el archivo
-Dim parteNumero As String
-Dim nombreNumero As Integer
-Dim e As Integer
-e = 1
-parteNumero = Mid(Sheets("Listado").Cells(u - 1, 1).Value, 11, 7)
-nombreNumero = CInt(parteNumero) + 1
-parteNumero = CStr(nombreNumero)
-
-' Agregando ceros para tener un nombre coherente
-Do While Len(parteNumero) < 6
-	parteNumero = "0" & parteNumero
-	e = e + 1
-Loop
-nombre = ruta & "Ventas Web " & parteNumero & ". " & fecha & ".xlsx"
-
-Sheets("ventas").Range("A1").Select
-ActiveWorkbook.SaveAs Filename:=nombre, FileFormat:=xlOpenXMLStrictWorkbook, ConflictResolution:=xlUserResolution, AddToMru:=True, Local:=True
-ActiveWorkbook.Save
-Application.ThisWorkbook.Save
-End Sub
-
-
-Sub ventasWeb()
-' Controlar que no se haya hecho formato antes
-If Range("I1").Value = "Detalle" Then
-	MsgBox ("Ya le diste formato a esta planilla. " & VBA.vbNewLine & "Probá con otra.")
-	Range("A1").Select
-	'Exit Sub
-End If
-
-' Declarando variables a utilizar
-Dim nombre As String
-Dim telefono As String
-Dim dni As String
-Dim numVenta As String
-Dim planilla As Object
-Dim packar As Object
-Dim ultimaFila As Integer
-Dim fecha As String
-Dim i As Integer
-Dim rotulos As Integer
-Dim ruta As String
-Dim img As String
-
-' Asignando algunos valores
-'ruta = "\\EDGARD\Web\Listados de Ventas Online\"
-ruta = "D:\Web\Listados de Ventas Online\"
-rotulos = 0
-fecha = Day(Date) & "-" & Month(Date) & "-" & Year(Date)
-
-
-' Guardando el archivo con nombre específico
-Call GuardarArchivo(fecha, ruta)
-Range("A1").Activate
-ultimaFila = ActiveSheet.Cells(Rows.count, 1).End(xlUp).Row
-
-' Borrando información innecesaria
-Range("Y:Y").EntireColumn.Copy
-Range("AO:AO").EntireColumn.PasteSpecial
-Range("B:K, P:T, X:X, Z:AE, AG:AG, AI:AN").EntireColumn.Delete
-Range("C:E").EntireColumn.Insert
-Range("H:H").EntireColumn.Copy
-Range("C:C").PasteSpecial
-Range("A1").Value = "Núm. Venta"
-Range("F:F").Select
-Selection.NumberFormat = "General"
-Range("G:G").Select
-Selection.NumberFormat = "0"
-
-' CORRIGIENDO NOMBRE DE CLIENTES
-For i = 2 To ultimaFila
-	Cells(i, 2).Value = UCase(Cells(i, 2).Value)
-	Cells(i, 8).Value = UCase(Cells(i, 8).Value)
-	Cells(i, 3).Value = UCase(Cells(i, 3).Value)
-Next i
-
-
-'Recorremos los nombres de los clientes
-For i = 2 To ultimaFila
-	If Cells(i, 2).Value <> Cells(i, 3).Value Then
-		Cells(i, 2).Value = Cells(i, 2).Value & " - " & Cells(i, 3).Value
+	' Controla el código NIS que esté completo
+	If Sheets("Proforma").Range("I10").Value = "" Then
+		MsgBox "Faltó poner código NIS en el domicilio"
+		Sheets("Proforma").Range("I10").Activate
+		Exit Sub
 	End If
-Next i
-Range("B1").Value = "Cliente"
 
-' Elimino la columna innecesaria
-Range("C:C").EntireColumn.Delete
-Range("G:G").EntireColumn.Delete
-Range("C:D").EntireColumn.Insert
-
-'Moviendo el detalle
-Range("M:M").EntireColumn.Copy
-Range("C:C").PasteSpecial
-Range("M:M").EntireColumn.Delete
-Range("C1").Value = "Descripción"
-
-'Moviendo la cantidad
-Range("M:M").EntireColumn.Copy
-Range("F:F").PasteSpecial
-Range("L:L").EntireColumn.Delete
-Range("F1").Value = "Cantidad"
-
-'Eliminando columna innecesaria
-Range("L:L").EntireColumn.Delete
-
-
-'Purgando los teléfonos
-For i = 2 To ultimaFila
-	Cells(i, 8).Value = Right(Cells(i, 8).Value, 10)
-Next i
-
-' Insertando columna para detalls
-Range("I:I").EntireColumn.Insert
-Range("I1:I1").Value = "Detalles"
-
-
-' Generando las columnas de código/talle/color/cantidad
-Range("C:C").Select
-Selection.TextToColumns Destination:=Range("C1"), DataType:=xlDelimited, _
-		TextQualifier:=xlDoubleQuote, ConsecutiveDelimiter:=False, Tab:=False, _
-		Semicolon:=False, Comma:=False, Space:=False, Other:=True, OtherChar _
-		:="(", FieldInfo:=Array(Array(1, 1), Array(2, 1)), TrailingMinusNumbers:=True
-Range("A2").Activate
-Cells.Replace what:=")", Replacement:="", LookAt:=xlPart, searchorder:= _
-		xlByRows, MatchCase:=False, SearchFormat:=False, ReplaceFormat:=False
-Range("D1").Value = "Código"
-Range("E1").Value = "Variante"
-
-
-'Borra cosas innecesarias
-Do While ActiveCell.Value <> ""
-	If ActiveCell.Offset(0, 1) = "" Then
-		ActiveCell.Value = ""
-		ActiveCell.Offset(0, 13) = ""
-	End If
-	ActiveCell.Offset(1, 0).Activate
-Loop
-
-' DANDO FORMATO A TODA LA PLANILLA
-Call formato(ultimaFila, i)
-
-
-' GENERANDO LOS ROTULOS DE RETIRO
-For i = 2 To ultimaFila
-	If Sheets("ventas").Cells(i, 13).Value = "Retiras en Rerda Mendoza" Then
-
-		' Se coloca la leyenda en la celda
-		Debug.Print Cells(i, 9).Value
-		Cells(i, 9).Value = "Retira en Local"
-
-		' Variables a completar
-		nombre = Cells(i, 2).Value
-		telefono = Cells(i, 8).Value
-		dni = Cells(i, 7).Value
-		numVenta = Cells(i, 1).Value
-
-		' Contador de rótulos a imprimir
-		rotulos = rotulos + 1
-
-		' Se agrega una pestaña para el respectivo rótulo
-		ActiveWorkbook.Sheets.Add(After:=ActiveWorkbook.Sheets("ventas")).Name = "Venta N° " & Cells(i, 1).Value
-
-		' Se genera el rótulo respectivo
-		Call generarRoutuloRetiro(nombre, telefono, dni, fecha, numVenta, ruta)
-
-	End If
-	Sheets("ventas").Activate
-Next i
-
-'Posicionando al principio
-Sheets("ventas").Range("A1").Activate
-
-' Definiendo este archivo
-Set planilla = ActiveWorkbook
-
-' DANDO FORMATO DE IMPRESION
-Call formatPrint(ultimaFila, i)
-
-
-
-' Dando un aviso condicional sólo si hay rótulos, se lo contrario, no.
-If rotulos > 0 Then
-	MsgBox ("Tenés " & rotulos & " rótulos de retiro en local, para imprimir." & VBA.vbNewLine & "Aquí abajo en las pestañas.")
-End If
-
-' Abrir el archivo
-ruta = ruta & "../"
-Workbooks.Open ruta & "ENCOMIENDAS_WEB.xlsx"
-Set packar = ActiveWorkbook
-
-Call correo(numVenta, nombre, ultimaFila, i, packar, planilla)
-
-'Posicionando al principio
-planilla.Sheets("ventas").Activate
-ActiveWorkbook.Save
+	' Imprimie la proforma
+	Call guardar(rutaViajante, cliente & " - Factura Proforma", fecha)
 End Sub
