@@ -1,6 +1,4 @@
-' ============================================================
-' ==================== MODULO 1 ==============================
-' ============================================================
+Attribute VB_Name = "PlanillaViajantes"
 Option Explicit
 ' Definiendo unas variables globales a usar
 Dim cp As String
@@ -35,69 +33,69 @@ domicilio = Sheets("A Domicilio").Range("X3").Value
 ' Controla si la carpeta existe, de lo contrario, la crea en local
 Call crearArchivo(ruta, viajante, fecha, cliente, cp)
     
-' Controla si se determinÃ³ el vendedor, viajente o sucursal
+' Controla si se determinó el vendedor, viajente o sucursal
 If viajante = "" Then
-    MsgBox ("Â¿Y tu nombre como vendedor, viajante o sucursal?")
+    MsgBox ("¿Y tu nombre como vendedor, viajante o sucursal?")
     ActiveSheet.Range("X1").Activate
 
-' Controla apellido, nombre o razÃ³n social del cliente
+' Controla apellido, nombre o razón social del cliente
 ElseIf ActiveSheet.Range("X2").Value = "" Then
-    MsgBox ("Â¿Y el Apellido/Nombre o razÃ³n social del cliente?")
+    MsgBox ("¿Y el Apellido/Nombre o razón social del cliente?")
     ActiveSheet.Range("X2").Activate
 
-' Controla datos de direcciÃ³n para el caso de "ENVIO A DOMICILIO".
+' Controla datos de dirección para el caso de "ENVIO A DOMICILIO".
 ElseIf ActiveSheet.Name = "A Domicilio" And ActiveSheet.Range("X3").Value = "" Then
-    MsgBox ("Â¿Y la direcciÃ³n de destino? Calle, NÂº, piso, dpto, etc...")
+    MsgBox ("¿Y la dirección de destino? Calle, Nº, piso, dpto, etc...")
     Sheets("A Domicilio").Range("X3").Activate
 
-' Controla que el cÃ³digo postal exista y sea correcto.
+' Controla que el código postal exista y sea correcto.
 ElseIf ActiveSheet.Range("X5").Value = "" Then
-    MsgBox ("Â¿Y el cÃ³digo postal?")
+    MsgBox ("¿Y el código postal?")
     ActiveSheet.Range("X5").Activate
 
 ' Controla el DNI/CUIT del cliente
 ElseIf ActiveSheet.Range("X6").Value = "" Then
-    MsgBox ("Â¿Y el DNI o CUIL/CUIT del cliente?")
+    MsgBox ("¿Y el DNI o CUIL/CUIT del cliente?")
     ActiveSheet.Range("X6").Activate
 
-' Controla el telÃ©fono de contacto del cliente
+' Controla el teléfono de contacto del cliente
 ElseIf ActiveSheet.Range("X7").Value = "" Then
-    MsgBox ("Â¿Y el telÃ©fono o celular del cliente?")
+    MsgBox ("¿Y el teléfono o celular del cliente?")
     ActiveSheet.Range("X7").Activate
 
 ' Controla la ciudad o pueblo de destino
 ElseIf ActiveSheet.Range("X8").Value = "" Then
-    MsgBox ("Â¿Y la ciudad o pueblo?")
+    MsgBox ("¿Y la ciudad o pueblo?")
     ActiveSheet.Range("X8").Activate
 
 ' Controla la Provincia de destino
 ElseIf ActiveSheet.Range("X9").Value = "" Then
-    MsgBox ("Â¿Y la provincia?")
+    MsgBox ("¿Y la provincia?")
     ActiveSheet.Range("X9").Activate
 
 ' Controla que sea NIS para el caso de retiro en sucursal
 ElseIf ActiveSheet.Name = "A Sucursal" Or ActiveSheet.Name = "Pago en Destino" Then
     domicilio = "Sucursal Correo Argentino NIS " & Application.VLookup(ActiveSheet.Range("X5"), Sheets("Sucursales").Range("A3:B4000"), 2, False)
     
-    ' Muestra dÃ³nde se guarda el archivo y lo abre
+    ' Muestra dónde se guarda el archivo y lo abre
     Call guardar(rutaViajante, cliente, fecha)
     
     ' Genera, si corresponde; la factura proforma
     Call proforma(cliente, dni, domicilio, UCase(ActiveSheet.Range("X9").Value), cp, UCase(ActiveSheet.Range("X8").Value), UCase(ActiveSheet.Range("X7").Value))
 
 Else
-    ' Muestra dÃ³nde se guarda el archivo y lo abre
+    ' Muestra dónde se guarda el archivo y lo abre
     Call guardar(rutaViajante, cliente, fecha)
     
     ' Genera, si corresponde; la factura proforma
-    Call proforma(cliente, dni, domicilio, UCase(ActiveSheet.Range("X9").Value), cp, UCase(ActiveSheet.Range("X8").Value), UCase(ActiveSheet.Range("X7").Value))
+    Call proforma(cliente, dni, domicilio, UCase(ActiveSheet.Range("X8").Value), cp, UCase(ActiveSheet.Range("X9").Value), UCase(ActiveSheet.Range("X7").Value))
 End If
 
 End Sub
 
 ' FORMATEA LA PLANILLA PARA VISUALIZACION Y MODO IMPRESION
 Function darFormato()
-    ' Formato a cada planilla en cuestiÃ³n
+    ' Formato a cada planilla en cuestión
     With ActiveSheet.PageSetup
         .Orientation = xlLandscape
         .PaperSize = xlPaperA4
@@ -148,8 +146,8 @@ End Function
 ' TAMBIEN MUESTRA DONDE GUARDA Y LO ABRE PARA IMPRIMIR.
 Function guardar(rutaViajante, cliente, fecha)
 
-    ' Muestra en quÃ© carpeta se guarda
-    MsgBox ("Se guardÃ³ una copia PDF en " & rutaViajante & "\" & fecha & ". " & cliente & ".pdf")
+    ' Muestra en qué carpeta se guarda
+    MsgBox ("Se guardó una copia PDF en " & rutaViajante & "\" & fecha & ". " & cliente & ".pdf")
     
     ' Cambio de nomenclatura en el nombrado ascendente de los archivos.
     ActiveSheet.ExportAsFixedFormat Type:=xlTypePDF, Filename:= _
@@ -162,7 +160,7 @@ Function guardar(rutaViajante, cliente, fecha)
 End Function
 
 ' CHEQUEA SI CORRESPONDE O NO LA F. PROFORMA
-Function proforma(apellidoNombre, dni, direccion, provincia, codigoPostal, ciudad, telefono)
+Function proforma(apellidoNombre, dni, direccion, ciudad, codigoPostal, provincia, telefono)
     ' Variables a utilizar
     Dim acumulador As Byte
     Dim cantidad As Byte
@@ -170,8 +168,9 @@ Function proforma(apellidoNombre, dni, direccion, provincia, codigoPostal, ciuda
     Dim sku As String
     Dim color As String
     Dim talle As String
+    Debug.Print provincia
     
-    ' Borra informaciÃ³n previa
+    ' Borra información previa
     With Sheets("Proforma")
         .Range("A22:D46").ClearContents
         .Range("H22:H46").ClearContents
@@ -229,15 +228,15 @@ Function proforma(apellidoNombre, dni, direccion, provincia, codigoPostal, ciuda
             ' Salta a la siguiente celda de abajo
             ActiveCell.Offset(1, 0).Activate
             
-            ' Sale cuando no hay mÃ¡s SKU
+            ' Sale cuando no hay más SKU
             If ActiveCell.Value = "" Then
                 Exit Do
             End If
         Loop
         
-        ' Indica que se complete informaciÃ³n de precios
+        ' Indica que se complete información de precios
         Sheets("Proforma").Activate
-        MsgBox ("Ahora completÃ¡ los precios unitarios de los productos.")
+        MsgBox ("Ahora completá los precios unitarios de los productos.")
         Range("H22").Activate
     End If
 End Function
@@ -248,67 +247,23 @@ Sub imprimeProforma()
     Dim permitido As Boolean
     Range("A22").Activate
     
-    ' Recorre los precios unitarios para que estÃ©n completos.
+    ' Recorre los precios unitarios para que estén completos.
     Do While ActiveCell.Value <> ""
         If ActiveCell.Offset(0, 7).Value = "" Then
-            MsgBox "Te faltÃ³ un precio unitario"
+            MsgBox "Te faltó un precio unitario"
             ActiveCell.Offset(0, 7).Activate
             Exit Sub
         End If
         ActiveCell.Offset(1, 0).Activate
     Loop
     
-    ' Controla el cÃ³digo NIS que estÃ© completo
+    ' Controla el código NIS que esté completo
     If Sheets("Proforma").Range("I10").Value = "" Then
-        MsgBox "FaltÃ³ poner cÃ³digo NIS en el domicilio"
+        MsgBox "Faltó poner código NIS en el domicilio"
         Sheets("Proforma").Range("I10").Activate
         Exit Sub
     End If
         
     ' Imprimie la proforma
     Call guardar(rutaViajante, cliente & " - Factura Proforma", fecha)
-End Sub
-
-
-' ============================================================
-' ==================== ThisWorkbook ==========================
-' ============================================================
-Option Explicit
-dim clave as String
-
-Private Sub Workbook_BeforeClose(Cancel As Boolean)
-    Cancel = False
-    ThisWorkbook.Save
-End Sub
-
-Private Sub Workbook_Open()
-    clave = "Â¿QuÃ© te importa?"
-    
-    Dim hojita As Worksheet
-    
-    ' Se para en la planilla principal
-    Sheets(1).Activate
-    Range("A1").Activate
-    
-    ThisWorkbook.Unprotect Password:=clave
-    
-    'Mostrando y habilitando algunas
-    For Each hojita In ThisWorkbook.Worksheets
-        If hojita.Visible = False Then
-            hojita.Visible = True
-        End If
-    Next hojita
-
-    ' Ocultando algunas
-    Sheets("Datos").Visible = False
-    Sheets("LINCE").Visible = False
-    
-    ' Protegiendo las hojas
-    For Each hojita In Application.Worksheets
-        hojita.Protect Password:=clave
-    Next hojita
-    
-    'Protegiendo el libro
-    ThisWorkbook.Protect (clave)
-
 End Sub
